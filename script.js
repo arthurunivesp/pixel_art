@@ -1,3 +1,4 @@
+// Seleciona os elementos principais da interface
 const canvas = document.querySelector(".canvas");
 const inputSize = document.querySelector(".input-size");
 const inputColor = document.querySelector(".input-color");
@@ -11,16 +12,19 @@ const MIN_CANVAS_SIZE = 4;
 let isPainting = false;
 let isResizing = false;
 
+// Função para criar um elemento HTML com classe opcional
 const createElement = (tag, className = "") => {
     const element = document.createElement(tag);
     element.className = className;
     return element;
 };
 
+// Define a cor do pixel quando clicado ou arrastado
 const setPixelColor = (pixel) => {
     pixel.style.backgroundColor = inputColor.value;
 };
 
+// Cria um pixel interativo
 const createPixel = () => {
     const pixel = createElement("div", "pixel");
 
@@ -32,6 +36,7 @@ const createPixel = () => {
     return pixel;
 };
 
+// Carrega o canvas com a grade de pixels
 const loadCanvas = () => {
     const length = inputSize.value;
     canvas.innerHTML = "";
@@ -47,12 +52,14 @@ const loadCanvas = () => {
     }
 };
 
+// Atualiza o tamanho do canvas
 const updateCanvasSize = () => {
     if (inputSize.value >= MIN_CANVAS_SIZE) {
         loadCanvas();
     }
 };
 
+// Salva e exibe as cores utilizadas
 const changeColor = () => {
     const button = createElement("button", "button-color");
     const currentColor = inputColor.value;
@@ -69,21 +76,25 @@ const changeColor = () => {
     }
 };
 
-// Função para converter RGB para HEX
+// Converte a cor RGB para HEX
 const rgbToHex = (rgb) => {
     if (!rgb || rgb === "rgb(68, 68, 68)") return "#444444";
     const [r, g, b] = rgb.match(/\d+/g).map(Number);
     return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
 };
 
-// Função ajustada para coletar as cores dos pixels pintados
+// Captura os dados das cores dos pixels pintados e define a lógica das instruções por linha
 const getPixelColors = () => {
     const rows = document.querySelectorAll(".row");
     const colorData = [];
+    const movementData = [];
 
     rows.forEach((row, rowIndex) => {
-        const rowLetter = String.fromCharCode(65 + rowIndex); // 65 é 'A'
+        const rowLetter = String.fromCharCode(65 + rowIndex);
         const pixels = row.querySelectorAll(".pixel");
+        let emptyCount = 0;
+        let movement = `Line ${rowIndex + 1} = `;
+
         pixels.forEach((pixel, colIndex) => {
             const color = pixel.style.backgroundColor;
             const hexColor = rgbToHex(color);
@@ -91,25 +102,35 @@ const getPixelColors = () => {
             if (hexColor !== "#444444") {
                 const colorName = colorNamer(hexColor).ntc[0].name || "Desconhecida";
                 colorData.push(`${rowLetter}${colIndex + 1}: ${hexColor} ${colorName}`);
+
+                movement += `${emptyCount} ➝ `; // Registra casas percorridas antes de pintar
+                emptyCount = 0; // Resetar contador
+            } else {
+                emptyCount++;
+            }
+
+            if (colIndex === pixels.length - 1) {
+                movement += `${emptyCount} ➝`; // Adiciona casas restantes da linha
             }
         });
+
+        movementData.push(movement);
     });
 
-    return colorData;
+    return { colorData, movementData };
 };
 
-// Função para salvar o canvas como PDF
+// Salva o canvas e gera o PDF com todas as instruções
 const saveCanvas = async () => {
-    const a4WidthPx = 2480; // Largura total de um papel A4 em pixels
+    const a4WidthPx = 2480;
     const originalWidth = canvas.offsetWidth;
     const originalHeight = canvas.offsetHeight;
 
-    // Ajustando o canvas para capturar em alta resolução
     canvas.style.width = `${a4WidthPx}px`;
     canvas.style.height = `${a4WidthPx}px`;
 
     try {
-        await new Promise((resolve) => setTimeout(resolve, 300)); // Atraso para atualização do DOM
+        await new Promise((resolve) => setTimeout(resolve, 300));
 
         const image = await html2canvas(canvas, {
             width: a4WidthPx,
@@ -129,26 +150,39 @@ const saveCanvas = async () => {
         });
 
         const imgData = image.toDataURL("image/png");
-        pdf.addImage(imgData, "PNG", 10, 10, 600, 600); // Imagem ajustada para A4
-
-        const colorData = getPixelColors();
+        pdf.addImage(imgData, "PNG", 10, 10, 600, 600);
+        
+        const { colorData, movementData } = getPixelColors();
+        let yPosition = 220; 
 
         if (colorData.length > 0) {
             pdf.setFontSize(12);
-            pdf.text("Instruções (Quadrados Pintados):", 10, 210);
-            let yPosition = 220;
+            pdf.text("Instruções (Quadrados Pintados):", 10, yPosition);
+            yPosition += 7;
 
             colorData.forEach((instruction) => {
-                pdf.text(instruction, 10, yPosition);
-                yPosition += 10;
                 if (yPosition > 280) {
                     pdf.addPage();
                     yPosition = 20;
                 }
+                pdf.text(instruction, 10, yPosition);
+                yPosition += 7;
             });
         }
 
-        pdf.save("pixelart_a4_com_fundo_branco.pdf");
+        pdf.text("Instruções (Casas Pintadas por Linha):", 10, yPosition + 12);
+        yPosition += 22;
+
+        movementData.forEach((instruction) => {
+            if (yPosition > 280) {
+                pdf.addPage();
+                yPosition = 20;
+            }
+            pdf.text(instruction, 10, yPosition);
+            yPosition += 7;
+        });
+
+        pdf.save("pixelart_com_instrucoes.pdf");
     } catch (error) {
         console.error("Erro ao gerar o PDF:", error);
     }
