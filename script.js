@@ -123,14 +123,14 @@ const getPixelColors = () => {
                 const colorName = colorNamer(hexColor).ntc[0].name || "Desconhecida";
                 colorData.push(`${rowLetter}${colIndex + 1}: ${hexColor} ${colorName}`);
 
-                movement += `${emptyCount} ➝ `; // Registra casas percorridas antes de pintar
+                movement += `${emptyCount} -> `; // Usa -> ao invés de ➝
                 emptyCount = 0; // Resetar contador
             } else {
                 emptyCount++;
             }
 
             if (colIndex === pixels.length - 1) {
-                movement += `${emptyCount} ➝`; // Adiciona casas restantes da linha
+                movement += `${emptyCount} ->`; // Adiciona casas restantes da linha
             }
         });
 
@@ -234,4 +234,3 @@ const resizeCanvas = (cursorPositionX) => {
 };
 
 loadCanvas();
-
