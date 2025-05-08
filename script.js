@@ -4,6 +4,7 @@ const inputSize = document.querySelector(".input-size");
 const inputColor = document.querySelector(".input-color");
 const usedColors = document.querySelector(".used-colors");
 const buttonSave = document.querySelector(".button-save");
+const buttonClear = document.querySelector(".button-clear");
 const colResize = document.querySelector(".resize");
 const main = document.querySelector("main");
 
@@ -50,6 +51,15 @@ const loadCanvas = () => {
 
         canvas.append(row);
     }
+};
+
+// Limpa o canvas e as cores usadas
+const clearCanvas = () => {
+    const pixels = document.querySelectorAll(".pixel");
+    pixels.forEach(pixel => {
+        pixel.style.backgroundColor = "#444";
+    });
+    usedColors.innerHTML = ""; // Limpa as cores usadas
 };
 
 // Atualiza o tamanho do canvas
@@ -150,7 +160,7 @@ const saveCanvas = async () => {
         });
 
         const imgData = image.toDataURL("image/png");
-        pdf.addImage(imgData, "PNG", 10, 10, 600, 600);
+        pdf.addImage(imgData, "PNG", 10, 10, 190, 190); // Ajustado para caber melhor no A4
         
         const { colorData, movementData } = getPixelColors();
         let yPosition = 220; 
@@ -199,6 +209,10 @@ colResize.addEventListener("mousedown", () => (isResizing = true));
 main.addEventListener("mouseup", () => (isResizing = false));
 main.addEventListener("mousemove", ({ clientX }) => resizeCanvas(clientX));
 
+buttonClear.addEventListener("click", clearCanvas);
+
+buttonSave.addEventListener("click", saveCanvas);
+
 const resizeCanvas = (cursorPositionX) => {
     if (!isResizing) return;
 
@@ -209,8 +223,4 @@ const resizeCanvas = (cursorPositionX) => {
     colResize.style.height = width;
 };
 
-buttonSave.addEventListener("click", saveCanvas);
-
 loadCanvas();
-
-
