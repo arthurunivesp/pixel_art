@@ -12,6 +12,7 @@ const MIN_CANVAS_SIZE = 4;
 
 let isPainting = false;
 let isResizing = false;
+let paintHistory = []; // Pilha para rastrear as ações de pintura
 
 // Função para criar um elemento HTML com classe opcional
 const createElement = (tag, className = "") => {
@@ -22,7 +23,16 @@ const createElement = (tag, className = "") => {
 
 // Define a cor do pixel quando clicado ou arrastado
 const setPixelColor = (pixel) => {
-    pixel.style.backgroundColor = inputColor.value;
+    const previousColor = pixel.style.backgroundColor || "#444"; // Cor anterior (padrão #444 se não pintado)
+    const newColor = inputColor.value;
+    pixel.style.backgroundColor = newColor;
+
+    // Registra a ação na pilha de histórico
+    paintHistory.push({
+        pixel: pixel,
+        previousColor: previousColor,
+        newColor: newColor
+    });
 };
 
 // Cria um pixel interativo
@@ -41,6 +51,7 @@ const createPixel = () => {
 const loadCanvas = () => {
     const length = inputSize.value;
     canvas.innerHTML = "";
+    paintHistory = []; // Limpa o histórico ao recarregar o canvas
 
     for (let i = 0; i < length; i += 1) {
         const row = createElement("div", "row");
@@ -53,13 +64,12 @@ const loadCanvas = () => {
     }
 };
 
-// Limpa o canvas e as cores usadas
-const clearCanvas = () => {
-    const pixels = document.querySelectorAll(".pixel");
-    pixels.forEach(pixel => {
-        pixel.style.backgroundColor = "#444";
-    });
-    usedColors.innerHTML = ""; // Limpa as cores usadas
+// Desfaz a última pintura
+const undoLastPaint = () => {
+    if (paintHistory.length === 0) return; // Nada para desfazer
+
+    const lastAction = paintHistory.pop(); // Remove a última ação do histórico
+    lastAction.pixel.style.backgroundColor = lastAction.previousColor; // Restaura a cor anterior
 };
 
 // Atualiza o tamanho do canvas
@@ -209,7 +219,7 @@ colResize.addEventListener("mousedown", () => (isResizing = true));
 main.addEventListener("mouseup", () => (isResizing = false));
 main.addEventListener("mousemove", ({ clientX }) => resizeCanvas(clientX));
 
-buttonClear.addEventListener("click", clearCanvas);
+buttonClear.addEventListener("click", undoLastPaint);
 
 buttonSave.addEventListener("click", saveCanvas);
 
@@ -224,3 +234,4 @@ const resizeCanvas = (cursorPositionX) => {
 };
 
 loadCanvas();
+
