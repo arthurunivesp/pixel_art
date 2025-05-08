@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // Seleciona os elementos principais da interface
 const canvas = document.querySelector(".canvas");
 const inputSize = document.querySelector(".input-size");
@@ -428,4 +427,3 @@ const resizeCanvas = (cursorPositionX) => {
 buttonSave.addEventListener("click", saveCanvas);
 
 loadCanvas();
->>>>>>> 0a2cbc0f3e032e77aecfba3178f7185645b1a825
