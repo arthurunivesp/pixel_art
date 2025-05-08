@@ -170,7 +170,7 @@ const saveCanvas = async () => {
         });
 
         const imgData = image.toDataURL("image/png");
-        pdf.addImage(imgData, "PNG", 10, 10, 190, 190); // Ajustado para caber melhor no A4
+        pdf.addImage(imgData, "PNG", 10, 10, 600, 600); // Ajustado para caber melhor no A4
         
         const { colorData, movementData } = getPixelColors();
         let yPosition = 220; 
