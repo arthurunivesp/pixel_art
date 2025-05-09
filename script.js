@@ -103,41 +103,71 @@ const rgbToHex = (rgb) => {
     return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
 };
 
-// Captura os dados das cores dos pixels pintados e define a lógica das instruções por linha
+// Captura os dados das cores dos pixels pintados e define a lógica das instruções
 const getPixelColors = () => {
     const rows = document.querySelectorAll(".row");
     const colorData = [];
     const movementData = [];
+    const narrativeData = [];
 
     rows.forEach((row, rowIndex) => {
         const rowLetter = String.fromCharCode(65 + rowIndex);
         const pixels = row.querySelectorAll(".pixel");
         let emptyCount = 0;
         let movement = `Line ${rowIndex + 1} = `;
+        let narrative = `Linha ${String(rowIndex + 1).padStart(2, '0')} = `;
+        let positionInRow = 0; // Rastreia a posição atual na linha
 
         pixels.forEach((pixel, colIndex) => {
             const color = pixel.style.backgroundColor;
             const hexColor = rgbToHex(color);
+            positionInRow = colIndex + 1; // Posição atual (1-based)
 
             if (hexColor !== "#444444") {
                 const colorName = colorNamer(hexColor).ntc[0].name || "Desconhecida";
                 colorData.push(`${rowLetter}${colIndex + 1}: ${hexColor} ${colorName}`);
 
-                movement += `${emptyCount} -> `; // Usa -> ao invés de ➝
-                emptyCount = 0; // Resetar contador
+                // Para movementData
+                movement += `${emptyCount} -> `;
+
+                // Para narrativeData
+                if (narrative.endsWith("= ")) {
+                    // Início da linha, pode ser 0
+                    if (emptyCount > 0) {
+                        narrative += `andou ${emptyCount} para frente, `;
+                    }
+                } else {
+                    // Após pintar, sempre anda pelo menos 1
+                    const steps = emptyCount > 0 ? emptyCount : 1;
+                    narrative += `andou ${steps} para frente, `;
+                }
+                narrative += `pintou de cor ${colorName} (${hexColor}), `;
+                emptyCount = 0;
             } else {
                 emptyCount++;
             }
 
             if (colIndex === pixels.length - 1) {
-                movement += `${emptyCount} ->`; // Adiciona casas restantes da linha
+                // Final da linha
+                movement += `${emptyCount} ->`;
+                if (narrative.endsWith("= ")) {
+                    // Linha sem pintura
+                    narrative += `andou ${emptyCount} para frente`;
+                } else if (emptyCount > 0) {
+                    // Calcula os quadrados restantes
+                    narrative += `andou ${emptyCount} para frente`;
+                } else {
+                    // Remove a última vírgula e espaço se não houver mais movimento
+                    narrative = narrative.slice(0, -2);
+                }
             }
         });
 
         movementData.push(movement);
+        narrativeData.push(narrative);
     });
 
-    return { colorData, movementData };
+    return { colorData, movementData, narrativeData };
 };
 
 // Salva o canvas e gera o PDF com todas as instruções
@@ -172,7 +202,7 @@ const saveCanvas = async () => {
         const imgData = image.toDataURL("image/png");
         pdf.addImage(imgData, "PNG", 10, 10, 600, 600); // Ajustado para caber melhor no A4
         
-        const { colorData, movementData } = getPixelColors();
+        const { colorData, movementData, narrativeData } = getPixelColors();
         let yPosition = 220; 
 
         if (colorData.length > 0) {
@@ -200,6 +230,25 @@ const saveCanvas = async () => {
             }
             pdf.text(instruction, 10, yPosition);
             yPosition += 7;
+        });
+
+        pdf.text("Explicação das Instruções por Linha:", 10, yPosition + 12);
+        yPosition += 22;
+
+        narrativeData.forEach((narrative) => {
+            if (yPosition > 280) {
+                pdf.addPage();
+                yPosition = 20;
+            }
+            const lines = pdf.splitTextToSize(narrative, 180); // Quebra o texto longo
+            lines.forEach((line) => {
+                if (yPosition > 280) {
+                    pdf.addPage();
+                    yPosition = 20;
+                }
+                pdf.text(line, 10, yPosition);
+                yPosition += 7;
+            });
         });
 
         pdf.save("pixelart_com_instrucoes.pdf");
